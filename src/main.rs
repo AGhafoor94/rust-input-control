@@ -1,5 +1,5 @@
 use mouse_rs::{ types::keys::Keys, Mouse };
-use std::process::{ Command };
+use std::{io::Stdout, process::{Command, Output}};
 // use std::io::{ Error };
 
 fn main() 
@@ -11,7 +11,10 @@ fn main()
     println!("{:?}", (position_x, position_y));
     // execute_command("cmd", &["/C","echo hello"]);
     // execute_command("cmd", &["/C","start msedge"]);
-    execute_command("cmd", &["/C","explorer https://www.google.co.uk"]);
+    // execute_command("cmd", &["/C","explorer https://www.google.co.uk"]);
+    let screen_res:Output = execute_command("cmd", &["/C","wmic PATH Win32_VideoController GET CurrentVerticalResolution,CurrentHorizontalResolution"]);
+
+    println!("{:?}", screen_res);
 }
 fn mouse_control(mouse:&Mouse)
 {
@@ -25,8 +28,9 @@ fn get_mouse_position(mouse:&Mouse) -> (i32, i32)
     let position = mouse.get_position().unwrap();
     (position.x, position.y)
 }
-fn execute_command(exe: &str, args: &[&str])
+fn execute_command(exe: &str, args: &[&str]) -> Output
 {
     let command = Command::new(exe).args(&*args).output().expect("Can't run");
-    println!("{:?}", command);
+    // println!("{:?}", command);
+    command
 }
