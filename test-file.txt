@@ -1,0 +1,3 @@
+CurrentHorizontalResolution  CurrentVerticalResolution  
+2560                         1440                       
+
