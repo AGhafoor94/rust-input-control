@@ -1,6 +1,7 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
 use windows::Win32::{
+    Foundation::*,
     UI::WindowsAndMessaging::*
 };
 use windows::core::{ s };
@@ -43,8 +44,15 @@ fn main()
     unsafe {
         // let title:PWSTR = [0b1010];
         // let caption:HSTRING = "World".into();
-        MessageBoxA(None, s!("Caption"), s!("Title"), MB_OK);
-
+        
+        let val:MESSAGEBOX_RESULT = MessageBoxA(None, s!("Caption"), s!("Title"), MB_YESNO | MB_ICONASTERISK | MB_TOPMOST |MB_SETFOREGROUND );
+        println!("{:?}",val.0);
+        match val.0
+        {
+            6 => println!("Message set to true"),
+            7 => println!("Message set to false"),
+            _ => println!("Error")
+        };
     }
     
 }
