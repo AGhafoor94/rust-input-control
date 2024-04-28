@@ -1,5 +1,9 @@
+use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
-use std::{ fs::File, io::{stdout, Read, Write}, process::{ Command, Output }, thread, str };
+use windows::Win32::{
+    UI::WindowsAndMessaging::*
+};
+use windows::core::{ s };
 // use std::io::{ Error };
 
 fn main() 
@@ -11,7 +15,7 @@ fn main()
     // execute_command("cmd",&["/C","start C:\\Users\\"]);
     // let screen_res:Output = execute_command("cmd",&["/C","wmic context"]);
     let mut screen_out:Output = screen_res.unwrap();
-
+    let _ = copy_all_files_in_directory("C:/Users/adnan/Downloads/test source","C:/Users/adnan/Downloads/test");
     let std_out_values:Vec<u8> = std::mem::take(&mut screen_out.stdout);
     println!("{:?}",std_out_values);
     let file_status:Result<(), std::io::Error> = write_output_to_file(&std_out_values, file_location);
@@ -23,20 +27,45 @@ fn main()
         Ok(val) => val,
         Err(e) => panic!("Invalid {}",e)
     };
-    println!("{}", value);
+    println!("{:?}", &value.trim());
     let (position_x, position_y):(i32,i32) = get_mouse_position(&mouse);
     mouse_control(&mouse);
     let (position_x, position_y):(i32,i32) = get_mouse_position(&mouse);
     println!("{:?}", (position_x, position_y));
     // execute_command("cmd", &["/C","echo hello"]);
     // execute_command("cmd", &["/C","start msedge"]);
-    // execute_command("cmd", &["/C","explorer https://www.google.co.uk"]);
+    // execute_command("cmd", &["/C","explorer https://www.office.com"]);
+    let _ = press_hold_mouse(&mouse);
+    let _ = move_mouse_to_location(&mouse, 20, 20);
+    let _ = move_mouse_to_location(&mouse, 40, 20);
+    std::thread::sleep(Duration::from_secs(5));
+    let _ = release_mouse(&mouse);
+    unsafe {
+        // let title:PWSTR = [0b1010];
+        // let caption:HSTRING = "World".into();
+        MessageBoxA(None, s!("Caption"), s!("Title"), MB_OK);
+
+    }
     
+}
+fn press_hold_mouse(mouse:&Mouse) -> Result<(), Box<dyn std::error::Error>>
+{
+    mouse.press(&Keys::LEFT)
+}
+fn move_mouse_to_location(mouse:&Mouse, x:i32, y:i32) -> Result<(), Box<dyn std::error::Error>>
+{
+    mouse.move_to(x, y)
+}
+fn release_mouse(mouse:&Mouse) -> Result<(), Box<dyn std::error::Error>>
+{
+    mouse.release(&Keys::LEFT)
 }
 fn mouse_control(mouse:&Mouse)
 {
     mouse.move_to(500,500).expect("Unable to move");
     mouse.press(&Keys::RIGHT).expect("Unable to press");
+    // mouse.press(&Keys::LEFT).expect("Can't click");
+    // mouse.move_to(700,700).expect("Unable to move");
     mouse.release(&Keys::RIGHT).expect("Unable to let go");
     mouse.move_to(0,0).expect("Unable to move");
 }
@@ -67,9 +96,24 @@ fn write_output_to_file(vector_bytes:&Vec<u8>, file_name: &'static str) -> Resul
             let buffer = [..item];
             file.write([item]);
         });
-    */
-    
+    */ 
     let success:Result<(), std::io::Error> = file.write_all(&vector_bytes);
     
     success
+}
+fn copy_all_files_in_directory(source: impl AsRef<Path>, destination: impl AsRef<Path>) -> io::Result<()>
+{
+    fs::create_dir(&destination)?;
+    for entry in fs::read_dir(&source)?
+    {
+        let entry:DirEntry = entry?;
+        let try_get_file_type:FileType = entry.file_type()?;
+        if try_get_file_type.is_dir()
+        {
+            copy_all_files_in_directory(entry.path(), &destination.as_ref().join(entry.file_name()))?;
+        }else {
+            fs::copy(entry.path(), &destination.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
