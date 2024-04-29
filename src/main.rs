@@ -5,7 +5,8 @@ use windows::Win32::{
 };
 use windows::core::{ s };
 // use std::io::{ Error };
-
+static X_SIZE: i32 = 500;
+static Y_SIZE:i32 = 500;
 fn main() -> Result<(), std::io::Error>
 {
     let file_location:&str = "./test-file.txt";
@@ -72,7 +73,7 @@ fn main() -> Result<(), std::io::Error>
         let atom = RegisterClassA(&window_class_a);
         debug_assert!(atom != 0);
         println!("Atom: {:?}",atom);
-        let window:HWND = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,500,500,None, None, instance,None);
+        let window:HWND = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,X_SIZE,Y_SIZE,None, None, instance,None);
         println!("{:?}",window);
         let mut message = MSG::default();
         // GetMessageA(&mut message, None, 0,0);
@@ -165,13 +166,11 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
                 // PAINTSTRUCT { hdc: val, fErase: val, rcPaint: val, fRestore: val, fIncUpdate: val, rgbReserved: val }
                 let mut paint_struct:PAINTSTRUCT = PAINTSTRUCT { ..Default::default() };
                 let hdc:HDC = BeginPaint(window, &mut paint_struct);
-                let rect:RECT = RECT {left:0, top:50, right:100,bottom:100};
+                // let rect:RECT = RECT {left:0, top:0, right:X_SIZE,bottom:Y_SIZE};
                 // println!("RECT: {:?}",&rect);
                 // let _ = ValidateRect(window, None);
-                let colour_ref:COLORREF = COLORREF(0x000000FF);
-                let brush: HBRUSH = CreateSolidBrush(colour_ref);
-                let item:i32 = FillRect(hdc, &rect, brush);
-                EndPaint(window, &paint_struct);
+                FillRect(hdc, &RECT {left:0, top:0, right:X_SIZE,bottom:Y_SIZE}, CreateSolidBrush(COLORREF(0x00000000)));
+                let _ = EndPaint(window, &paint_struct);
                 LRESULT(0)
             },
             WM_CLOSE => {
