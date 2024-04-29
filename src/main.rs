@@ -1,7 +1,7 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
 use windows::Win32::{
-    Foundation::{self, *}, Graphics::Gdi::{BeginPaint, CreateSolidBrush, DrawTextExA, EndPaint, FillRect, TextOutW, ValidateRect, HBRUSH, HDC, PAINTSTRUCT, DT_LEFT,DT_TOP}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}
+    Foundation::*, Graphics::Gdi::{BeginPaint, CreateSolidBrush, DrawTextExA, EndPaint, FillRect, TextOutW, ValidateRect, HDC, PAINTSTRUCT}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}
 };
 use windows::core::{ s };
 // use std::io::{ Error };
@@ -170,10 +170,10 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
                 // println!("RECT: {:?}",&rect);
                 // let _ = ValidateRect(window, None);
                 let numbers:Vec<u16> = vec![67, 117, 114, 114, 101, 110, 116, 72, 111, 114, 105, 122, 111, 110, 116, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 67, 117, 114, 114, 101, 110, 116, 86, 101, 114, 116, 105, 99, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 13, 13, 10, 50, 53, 54, 48];
-                let mut msg: Vec<u8> = b"Peace!".to_vec();
+                // let msg: Vec<u8> = b"Peace!".to_vec();
                 let mut rect: RECT = RECT {left:0, top:0, right:100,bottom:100};
                 let _ = TextOutW(hdc, 0, 100, &numbers);
-                DrawTextExA(hdc, &mut msg, &mut rect, DT_LEFT | DT_TOP, None);
+                // DrawTextExA(hdc, &mut msg, &mut rect, DT_LEFT | DT_TOP, None);
                 FillRect(hdc, &mut rect, CreateSolidBrush(COLORREF(0x00A12345)));
                 let _ = EndPaint(window, &paint_struct);
                 LRESULT(0)
