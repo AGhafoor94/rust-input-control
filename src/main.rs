@@ -156,24 +156,40 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
 {
     println!("Message: {:?}", message);
     unsafe {
-        match message as u32 {
-            36 => {
-                println!("WM_ACTIVATEAPP");
-                // DefWindowProcA(window, message, wparam, lparam)
-                LRESULT(0)
-            },
-            // 129 => {
-            //     println!("WM_PAINT");
-            //     let validated:BOOL = ValidateRect(window, None);
-            //     println!("Validated: {:?}", validated);
-            //     LRESULT(0)
-            // },
-            // 130 => {
-            //     println!("WM_DESTORY");
-            //     PostQuitMessage(0);
-            //     LRESULT(0)
-            // },
-            _ => DefWindowProcA(window, message, wparam, lparam)
+        if(message == WM_ACTIVATEAPP){
+            println!("WM_ACTIVATEAPP");
+            // DefWindowProcA(window, message, wparam, lparam)
+            LRESULT(0)
+        }else if (message == WM_PAINT){
+            println!("Paint window");
+            ValidateRect(window, None);
+            LRESULT(0)
         }
+        else if(message == 130){
+            println!("Destroy Window");
+            PostQuitMessage(0);
+            LRESULT(0)
+        }else {
+            DefWindowProcA(window, message, wparam, lparam)
+        }
+        // match message as u32 {
+        //     36 => {
+        //         println!("WM_ACTIVATEAPP");
+        //         // DefWindowProcA(window, message, wparam, lparam)
+        //         LRESULT(0)
+        //     },
+        //     // 129 => {
+        //     //     println!("WM_PAINT");
+        //     //     let validated:BOOL = ValidateRect(window, None);
+        //     //     println!("Validated: {:?}", validated);
+        //     //     LRESULT(0)
+        //     // },
+        //     // 130 => {
+        //     //     println!("WM_DESTORY");
+        //     //     PostQuitMessage(0);
+        //     //     LRESULT(0)
+        //     // },
+        //     _ => DefWindowProcA(window, message, wparam, lparam)
+        // }
     }
 }
