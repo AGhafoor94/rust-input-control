@@ -1,7 +1,7 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
 use windows::Win32::{
-    Foundation::{self, *}, Graphics::Gdi::ValidateRect, System::LibraryLoader::*, UI::WindowsAndMessaging::*, UI::Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}
+    Foundation::{self, *}, Graphics::Gdi::{BeginPaint, CreateSolidBrush, EndPaint, FillRect, ValidateRect, HBRUSH, HDC, PAINTSTRUCT, WHITENESS}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}
 };
 use windows::core::{ s };
 // use std::io::{ Error };
@@ -162,7 +162,16 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
             },
             WM_PAINT => {
                 println!("Paint APP: {:?}", message);
-                let _ = ValidateRect(window, None);
+                // PAINTSTRUCT { hdc: val, fErase: val, rcPaint: val, fRestore: val, fIncUpdate: val, rgbReserved: val }
+                let mut paint_struct:PAINTSTRUCT = PAINTSTRUCT { ..Default::default() };
+                let hdc:HDC = BeginPaint(window, &mut paint_struct);
+                let rect:RECT = RECT {left:0, top:50, right:100,bottom:100};
+                // println!("RECT: {:?}",&rect);
+                // let _ = ValidateRect(window, None);
+                let colour_ref:COLORREF = COLORREF(0x000000FF);
+                let brush: HBRUSH = CreateSolidBrush(colour_ref);
+                let item:i32 = FillRect(hdc, &rect, brush);
+                EndPaint(window, &paint_struct);
                 LRESULT(0)
             },
             WM_CLOSE => {
