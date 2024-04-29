@@ -1,13 +1,12 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
 use windows::Win32::{
-    Foundation::*,
-    UI::WindowsAndMessaging::*
+    Foundation::{self, *}, Graphics::Gdi::ValidateRect, System::LibraryLoader::*, UI::WindowsAndMessaging::*
 };
 use windows::core::{ s };
 // use std::io::{ Error };
 
-fn main() 
+fn main() -> Result<(), std::io::Error>
 {
     let file_location:&str = "./test-file.txt";
     let mouse:Mouse = Mouse::new();
@@ -45,16 +44,44 @@ fn main()
         // let title:PWSTR = [0b1010];
         // let caption:HSTRING = "World".into();
         
-        let val:MESSAGEBOX_RESULT = MessageBoxA(None, s!("Caption"), s!("Title"), MB_YESNO | MB_ICONASTERISK | MB_TOPMOST |MB_SETFOREGROUND );
-        println!("{:?}",val.0);
-        match val.0
-        {
-            6 => println!("Message set to true"),
-            7 => println!("Message set to false"),
-            _ => println!("Error")
+        // let message_box_result:MESSAGEBOX_RESULT = MessageBoxA(None, s!("Caption"), s!("Title"), MB_YESNO | MB_ICONASTERISK | MB_TOPMOST |MB_SETFOREGROUND );
+        // println!("{:?}",message_box_result.0);
+        // match message_box_result.0
+        // {
+        //     6 => println!("Message set to true"),
+        //     7 => println!("Message set to false"),
+        //     _ => println!("Error")
+        // };
+        // let hwnd:HWND = HWND(0);
+        // println!("{:?}",hwnd.0);
+        let instance = GetModuleHandleA(None)?;
+        debug_assert!(instance.0 != 0);
+        let window_class = s!("window");
+        let window_class_a = WNDCLASSA {
+            style: CS_OWNDC | CS_VREDRAW | CS_HREDRAW,
+            lpfnWndProc: Some(wnd_proc),
+            hInstance: instance.into(),
+            hCursor: LoadCursorW(None, IDC_ARROW)?,
+            lpszClassName: window_class,
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hIcon: Default::default(),
+            hbrBackground: Default::default(),
+            lpszMenuName: s!("Menu")
         };
+        let atom = RegisterClassA(&window_class_a);
+        debug_assert!(atom != 0);
+        println!("Atom: {:?}",atom);
+        CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,500,500,None, None, instance,None);
+        let mut message = MSG::default();
+        // GetMessageA(&mut message, None, 0,0);
+        while GetMessageA(&mut message, None, 0, 0).into(){
+            let result:LRESULT = DispatchMessageA(&message);
+            println!("MESSAGE DEF: {:?}", result);
+
+        }
     }
-    
+    Ok(())
 }
 fn press_hold_mouse(mouse:&Mouse) -> Result<(), Box<dyn std::error::Error>>
 {
@@ -124,4 +151,29 @@ fn copy_all_files_in_directory(source: impl AsRef<Path>, destination: impl AsRef
         }
     }
     Ok(())
+}
+extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPARAM) -> LRESULT
+{
+    println!("Message: {:?}", message);
+    unsafe {
+        match message as u32 {
+            36 => {
+                println!("WM_ACTIVATEAPP");
+                // DefWindowProcA(window, message, wparam, lparam)
+                LRESULT(0)
+            },
+            // 129 => {
+            //     println!("WM_PAINT");
+            //     let validated:BOOL = ValidateRect(window, None);
+            //     println!("Validated: {:?}", validated);
+            //     LRESULT(0)
+            // },
+            // 130 => {
+            //     println!("WM_DESTORY");
+            //     PostQuitMessage(0);
+            //     LRESULT(0)
+            // },
+            _ => DefWindowProcA(window, message, wparam, lparam)
+        }
+    }
 }
