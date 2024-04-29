@@ -1,12 +1,13 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
 use windows::Win32::{
-    UI::WindowsAndMessaging::*
+    Foundation::*, Graphics::Gdi::{BeginPaint, CreateSolidBrush, DrawTextExA, EndPaint, FillRect, TextOutW, ValidateRect, HDC, PAINTSTRUCT}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}
 };
 use windows::core::{ s };
 // use std::io::{ Error };
-
-fn main() 
+static X_SIZE: i32 = 500;
+static Y_SIZE:i32 = 500;
+fn main() -> Result<(), std::io::Error>
 {
     let file_location:&str = "./test-file.txt";
     let mouse:Mouse = Mouse::new();
@@ -43,10 +44,44 @@ fn main()
     unsafe {
         // let title:PWSTR = [0b1010];
         // let caption:HSTRING = "World".into();
-        MessageBoxA(None, s!("Caption"), s!("Title"), MB_OK);
-
+        
+        // let message_box_result:MESSAGEBOX_RESULT = MessageBoxA(None, s!("Caption"), s!("Title"), MB_YESNO | MB_ICONASTERISK | MB_TOPMOST |MB_SETFOREGROUND );
+        // println!("{:?}",message_box_result.0);
+        // match message_box_result.0
+        // {
+        //     6 => println!("Message set to true"),
+        //     7 => println!("Message set to false"),
+        //     _ => println!("Error")
+        // };
+        // let hwnd:HWND = HWND(0);
+        // println!("{:?}",hwnd.0);
+        let instance = GetModuleHandleA(None)?;
+        debug_assert!(instance.0 != 0);
+        let window_class = s!("window");
+        let window_class_a = WNDCLASSA {
+            style: CS_OWNDC | CS_VREDRAW | CS_HREDRAW,
+            lpfnWndProc: Some(wnd_proc),
+            hInstance: instance.into(),
+            hCursor: LoadCursorW(None, IDC_ARROW)?,
+            lpszClassName: window_class,
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hIcon: Default::default(),
+            hbrBackground: Default::default(),
+            lpszMenuName: s!("Menu")
+        };
+        let atom = RegisterClassA(&window_class_a);
+        debug_assert!(atom != 0);
+        println!("Atom: {:?}",atom);
+        let window:HWND = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,X_SIZE,Y_SIZE,None, None, instance,None);
+        println!("{:?}",window);
+        let mut message = MSG::default();
+        // GetMessageA(&mut message, None, 0,0);
+        while GetMessageA(&mut message, None, 0, 0).into(){
+            DispatchMessageA(&message);
+        }
     }
-    
+    Ok(())
 }
 fn press_hold_mouse(mouse:&Mouse) -> Result<(), Box<dyn std::error::Error>>
 {
@@ -116,4 +151,48 @@ fn copy_all_files_in_directory(source: impl AsRef<Path>, destination: impl AsRef
         }
     }
     Ok(())
+}
+extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPARAM) -> LRESULT
+{
+    // println!("Message: {:?}", message);
+    unsafe {
+        match message {
+            WM_ACTIVATEAPP => {
+                println!("Active app: {:?}", message);
+                LRESULT(0)
+            },
+            WM_PAINT => {
+                println!("Paint APP: {:?}", message);
+                // PAINTSTRUCT { hdc: val, fErase: val, rcPaint: val, fRestore: val, fIncUpdate: val, rgbReserved: val }
+                let mut paint_struct:PAINTSTRUCT = PAINTSTRUCT { ..Default::default() };
+                let hdc:HDC = BeginPaint(window, &mut paint_struct);
+                // let rect:RECT = RECT {left:0, top:0, right:X_SIZE,bottom:Y_SIZE};
+                // println!("RECT: {:?}",&rect);
+                // let _ = ValidateRect(window, None);
+                let numbers:Vec<u16> = vec![67, 117, 114, 114, 101, 110, 116, 72, 111, 114, 105, 122, 111, 110, 116, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 67, 117, 114, 114, 101, 110, 116, 86, 101, 114, 116, 105, 99, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 13, 13, 10, 50, 53, 54, 48];
+                // let msg: Vec<u8> = b"Peace!".to_vec();
+                let mut rect: RECT = RECT {left:0, top:0, right:100,bottom:100};
+                let _ = TextOutW(hdc, 0, 100, &numbers);
+                // DrawTextExA(hdc, &mut msg, &mut rect, DT_LEFT | DT_TOP, None);
+                FillRect(hdc, &mut rect, CreateSolidBrush(COLORREF(0x00A12345)));
+                let _ = EndPaint(window, &paint_struct);
+                LRESULT(0)
+            },
+            WM_CLOSE => {
+                println!("Close APP: {:?}", message);
+                PostQuitMessage(0);
+                LRESULT(0)
+            },
+            WM_CREATE => {
+                println!("Create App: {:?}", message);
+                LRESULT(0)
+            },
+            WM_DESTROY => {
+                println!("Destoryed: {:?}", message);
+                PostQuitMessage(0);
+                LRESULT(0)
+            },
+            _ => DefWindowProcA(window, message, wparam, lparam)
+        }
+    }
 }
