@@ -1,7 +1,7 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
 use windows::Win32::{
-    Foundation::{self, *}, Graphics::Gdi::ValidateRect, System::LibraryLoader::*, UI::WindowsAndMessaging::*
+    Foundation::{self, *}, Graphics::Gdi::ValidateRect, System::LibraryLoader::*, UI::WindowsAndMessaging::*, UI::Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}
 };
 use windows::core::{ s };
 // use std::io::{ Error };
@@ -72,13 +72,12 @@ fn main() -> Result<(), std::io::Error>
         let atom = RegisterClassA(&window_class_a);
         debug_assert!(atom != 0);
         println!("Atom: {:?}",atom);
-        CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,500,500,None, None, instance,None);
+        let window:HWND = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,500,500,None, None, instance,None);
+        println!("{:?}",window);
         let mut message = MSG::default();
         // GetMessageA(&mut message, None, 0,0);
         while GetMessageA(&mut message, None, 0, 0).into(){
-            let result:LRESULT = DispatchMessageA(&message);
-            println!("MESSAGE DEF: {:?}", result);
-
+            DispatchMessageA(&message);
         }
     }
     Ok(())
@@ -154,42 +153,33 @@ fn copy_all_files_in_directory(source: impl AsRef<Path>, destination: impl AsRef
 }
 extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPARAM) -> LRESULT
 {
-    println!("Message: {:?}", message);
+    // println!("Message: {:?}", message);
     unsafe {
-        if(message == WM_ACTIVATEAPP){
-            println!("WM_ACTIVATEAPP");
-            // DefWindowProcA(window, message, wparam, lparam)
-            LRESULT(0)
-        }else if (message == WM_PAINT){
-            println!("Paint window");
-            ValidateRect(window, None);
-            LRESULT(0)
+        match message {
+            WM_ACTIVATEAPP => {
+                println!("Active app: {:?}", message);
+                LRESULT(0)
+            },
+            WM_PAINT => {
+                println!("Paint APP: {:?}", message);
+                let _ = ValidateRect(window, None);
+                LRESULT(0)
+            },
+            WM_CLOSE => {
+                println!("Close APP: {:?}", message);
+                PostQuitMessage(0);
+                LRESULT(0)
+            },
+            WM_CREATE => {
+                println!("Create App: {:?}", message);
+                LRESULT(0)
+            },
+            WM_DESTROY => {
+                println!("Destoryed: {:?}", message);
+                PostQuitMessage(0);
+                LRESULT(0)
+            },
+            _ => DefWindowProcA(window, message, wparam, lparam)
         }
-        else if(message == 130){
-            println!("Destroy Window");
-            PostQuitMessage(0);
-            LRESULT(0)
-        }else {
-            DefWindowProcA(window, message, wparam, lparam)
-        }
-        // match message as u32 {
-        //     36 => {
-        //         println!("WM_ACTIVATEAPP");
-        //         // DefWindowProcA(window, message, wparam, lparam)
-        //         LRESULT(0)
-        //     },
-        //     // 129 => {
-        //     //     println!("WM_PAINT");
-        //     //     let validated:BOOL = ValidateRect(window, None);
-        //     //     println!("Validated: {:?}", validated);
-        //     //     LRESULT(0)
-        //     // },
-        //     // 130 => {
-        //     //     println!("WM_DESTORY");
-        //     //     PostQuitMessage(0);
-        //     //     LRESULT(0)
-        //     // },
-        //     _ => DefWindowProcA(window, message, wparam, lparam)
-        // }
     }
 }
