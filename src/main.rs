@@ -1,7 +1,8 @@
-use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
+use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Error, Read, Write}, num::NonZeroI128, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
-use windows::Win32::{Foundation::*, Graphics::{Direct2D::*, Gdi::{BeginPaint, CreateSolidBrush, DrawTextExA, Ellipse, EndPaint, FillRect, SelectObject, TextOutW, ValidateRect, HDC, HGDIOBJ,GetStockObject, DC_PEN, PAINTSTRUCT,CreatePen, HPEN,Rectangle,DeleteObject,PS_SOLID}}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}};
-use windows::core::{ s };
+use windows::Win32::{Foundation::*, Graphics::Gdi::{DFC_BUTTON, BeginPaint, CreatePen, CreateSolidBrush, DeleteObject, DrawFrameControl, DrawTextExA, Ellipse, EndPaint, FillRect, GetStockObject, Rectangle, SelectObject, TextOutW, ValidateRect, DC_PEN, DFCS_BUTTONPUSH, HDC, HGDIOBJ, HPEN, PAINTSTRUCT, PS_SOLID}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}};
+use windows::Win32::Graphics::Direct2D::*;
+use windows::core::{ s, HRESULT, PSTR };
 // use std::io::{ Error };
 static X_SIZE: i32 = 500;
 static Y_SIZE:i32 = 500;
@@ -154,6 +155,7 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
 {
     // println!("Message: {:?}", message);
     unsafe {
+        let instance = GetModuleHandleW(None);
        //  h_result:HRESULT = CreateGraphicsResources();
         match message {
             WM_ACTIVATEAPP => {
@@ -171,22 +173,44 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
                 
                 let mut client_rect: RECT = RECT {..Default::default()};
                 let _ = GetClientRect(window,&mut client_rect);
-                let mut original_object:HGDIOBJ = HGDIOBJ(0);
-                original_object = SelectObject(paint_struct.hdc, GetStockObject(DC_PEN));
-                let black_pen:HPEN = CreatePen(PS_SOLID, 3,COLORREF(0x000FFAA1));
-                SelectObject(paint_struct.hdc, black_pen);
-                let _ = Rectangle(paint_struct.hdc, client_rect.left + 100, client_rect.top + 100, client_rect.right - 100, client_rect.bottom - 100);
+                
+                // let mut original_object:HGDIOBJ = HGDIOBJ(0);
+                // original_object = SelectObject(paint_struct.hdc, GetStockObject(DC_PEN));
+                // let colour_pen:HPEN = CreatePen(PS_SOLID, 5,COLORREF(0x000FFA41));
+                // SelectObject(paint_struct.hdc, colour_pen);
+                // let _ = Rectangle(paint_struct.hdc, client_rect.left + 100, client_rect.top + 100, client_rect.right - 100, client_rect.bottom - 100);
 
-                let numbers:Vec<u16> = vec![67, 117, 114, 114, 101, 110, 116, 72, 111, 114, 105, 122, 111, 110, 116, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 67, 117, 114, 114, 101, 110, 116, 86, 101, 114, 116, 105, 99, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 13, 13, 10, 50, 53, 54, 48];
-                // let msg: Vec<u8> = b"Peace!".to_vec();#
-                let _ = Ellipse(hdc, 0, 100, 400, 400);
-                // CreateEllipseGeometry()
-                let mut rect: RECT = RECT {left:0, top:0, right:100,bottom:100};
+                // let numbers:Vec<u16> = vec![67, 117, 114, 114, 101, 110, 116, 72, 111, 114, 105, 122, 111, 110, 116, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 67, 117, 114, 114, 101, 110, 116, 86, 101, 114, 116, 105, 99, 97, 108, 82, 101, 115, 111, 108, 117, 116, 105, 111, 110, 32, 32, 13, 13, 10, 50, 53, 54, 48];
+                // // let msg: Vec<u8> = b"Peace!".to_vec();#
+                // let _ = Ellipse(hdc, 0, 100, 400, 400);
+                // // CreateEllipseGeometry()
+                // let mut rect: RECT = RECT {left:0, top:0, right:100,bottom:100};
 
-                let _ = TextOutW(hdc, 0, 100, &numbers);
-                // DrawTextExA(hdc, &mut msg, &mut rect, DT_LEFT | DT_TOP, None);
-                FillRect(hdc, &mut rect, CreateSolidBrush(COLORREF(0x00A12345)));
-                let delete:BOOL = DeleteObject(black_pen);
+                // let _ = TextOutW(hdc, 0, 100, &numbers);
+                // // DrawTextExA(hdc, &mut msg, &mut rect, DT_LEFT | DT_TOP, None);
+                // FillRect(hdc, &mut rect, CreateSolidBrush(COLORREF(0x00A12345)));
+                // let delete:BOOL = DeleteObject(colour_pen);
+                
+                // https://learn.microsoft.com/en-us/windows/win32/direct2d/getting-started-with-direct2d
+                // https://learn.microsoft.com/en-us/windows/win32/learnwin32/your-first-direct2d-program?source=recommendations
+                //https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/Graphics/Direct2D/struct.D2D1_RENDER_TARGET_PROPERTIES.html
+                //https://learn.microsoft.com/en-us/windows/win32/direct2d/getting-started-with-direct2d
+                // let direct_factory:Option<*const D2D1_FACTORY_OPTIONS> = None;
+                // let mut direct_factory:Option<*const D2D1_FACTORY_OPTIONS> = Some(std::ptr::null());
+                let direct_factory:D2D1_FACTORY_OPTIONS = D2D1_FACTORY_OPTIONS {debugLevel: D2D1_DEBUG_LEVEL(0)};
+                let debug_level:*const D2D1_FACTORY_OPTIONS = &direct_factory;
+                // let mut factory = std::ptr::null_mut();
+                // let h_window_button = CreateMDIWindowA(s!("BUTTON"),s!("button text"), WS_TABSTOP | WS_VISIBLE|WS_CHILD, 10, 10, 100, 100, window, GetWindowLongPtrA(window, GWLP_HINSTANCE),None);
+                let h_window_button:HWND = CreateWindowExA(WS_EX_LAYERED,s!("window"),s!("BUTTON"), WS_TABSTOP | WS_VISIBLE|WS_CHILD, 10, 10, 100, 100, window, None,HINSTANCE::default(),None);
+                println!("{:?}",h_window_button);
+                let button = CREATESTRUCTA{lpCreateParams:std::ptr::null_mut(),hInstance:HINSTANCE(isize::MAX),hwndParent:window,cy:100, cx:100,y:0,x:0,style:BS_PUSHBUTTON | BS_FLAT  ,lpszName:s!("BUTTON"),lpszClass:s!("BUTTON"),..Default::default()};
+                // https://learn.microsoft.com/en-us/windows/win32/controls/button-types-and-styles
+                // https://stackoverflow.com/questions/11379421/how-to-create-an-embedded-text-input-box-in-win32-windows
+                // direct_factory.ok_or(Error::from(E_FAIL))?
+                // let handle_result = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, Some(factory));
+                // ShowWindow(h_window_button,SW_SHOW);
+                DrawFrameControl(hdc, &mut client_rect, DFC_BUTTON, DFCS_BUTTONPUSH);
+
                 let _ = EndPaint(window, &paint_struct);
                 LRESULT(0)
             },
@@ -197,6 +221,16 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
             },
             WM_CREATE => {
                 println!("Create App: {:?}", message);
+                match instance {
+                    Ok(ok)=> {
+                        CreateWindowExA(WS_EX_APPWINDOW, s!("BUTTON"), s!("CLICK"),  WS_VISIBLE | WS_CHILD, 10, 10, 100, 100, window,None,ok,None);
+                        ShowWindow(window, SW_SHOWDEFAULT);
+                    },
+                    _ => {
+                        CreateWindowExA(WS_EX_APPWINDOW, s!("BUTTON"), s!("CLICK Other"),  WS_VISIBLE | WS_CHILD, 10, 10, 100, 100, window,None,HINSTANCE::default(),None);
+                        ShowWindow(window, SW_SHOWDEFAULT);
+                    }
+                };
                 LRESULT(0)
             },
             WM_DESTROY => {
@@ -207,4 +241,12 @@ extern "system" fn wnd_proc(window:HWND, message:u32, wparam:WPARAM, lparam:LPAR
             _ => DefWindowProcA(window, message, wparam, lparam)
         }
     }
+}
+fn create_graphics_resources() -> HRESULT {
+    let h_result: HRESULT  = S_OK;
+
+
+
+    h_result
+
 }
