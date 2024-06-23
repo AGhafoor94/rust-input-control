@@ -1,6 +1,6 @@
 use std::{ fs::{self, DirEntry, File, FileType}, io::{self, Read, Write}, path::Path, process::{ Command, Output }, str, time::Duration };
 use mouse_rs::{ types::{keys::Keys, Point}, Mouse };
-use windows::Win32::{Foundation::*, Graphics::{Direct2D::*, Gdi::{BeginPaint, CreateSolidBrush, DrawTextExA, Ellipse, EndPaint, FillRect, SelectObject, TextOutW, ValidateRect, HDC, HGDIOBJ,GetStockObject, DC_PEN, PAINTSTRUCT,CreatePen, HPEN,Rectangle,DeleteObject,PS_SOLID}}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}};
+use windows::Win32::{Foundation::*, Graphics::{Direct2D::*, Gdi::{BeginPaint, CreatePen, CreateSolidBrush, DeleteObject, DrawTextExA, Ellipse, EndPaint, FillRect, GetStockObject, MapWindowPoints, Rectangle, SelectObject, TextOutW, ValidateRect, DC_PEN, HDC, HGDIOBJ, HPEN, PAINTSTRUCT, PS_SOLID}}, System::LibraryLoader::*, UI::{Input::KeyboardAndMouse::{VK_LBUTTON, VK_RBUTTON}, WindowsAndMessaging::*}};
 use windows::core::{ s };
 // use std::io::{ Error };
 static X_SIZE: i32 = 500;
@@ -35,8 +35,8 @@ fn main() -> Result<(), std::io::Error>
     // execute_command("cmd", &["/C","start msedge"]);
     // execute_command("cmd", &["/C","explorer https://www.office.com"]);
     let _ = press_hold_mouse(&mouse);
-    let _ = move_mouse_to_location(&mouse, 20, 20);
-    let _ = move_mouse_to_location(&mouse, 40, 20);
+    let _ = move_mouse_to_location(&mouse, 1280, 720);
+    // let _ = move_mouse_to_location(&mouse, 40, 20);
     std::thread::sleep(Duration::from_secs(5));
     let _ = release_mouse(&mouse);
     unsafe {
@@ -74,8 +74,16 @@ fn main() -> Result<(), std::io::Error>
         let window:HWND = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST, window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CAPTION,0,0,X_SIZE,Y_SIZE,None, None, instance,None);
         println!("{:?}",window);
         let mut message = MSG::default();
+        let current_window:HWND = GetForegroundWindow();
+        let mut client_rect: RECT = RECT {..Default::default()};
+        let _ = GetClientRect(current_window,&mut client_rect);
+        SetWindowPos(current_window,HWND_TOP,0,0,client_rect.right,client_rect.bottom,SWP_SHOWWINDOW);
+        // let windows_position = MapWindowPoints(0, current_window,0 );
+        let mut text:Vec<u16> = vec![];
+        let get_text_from_window = GetWindowTextW(current_window,&mut text);
+        println!("line 80: {:?}",client_rect);
         // GetMessageA(&mut message, None, 0,0);
-        while GetMessageA(&mut message, None, 0, 0).into(){
+        while GetMessageA(&mut message, window, 0, 0).into(){
             DispatchMessageA(&message);
         }
     }
