@@ -68,26 +68,27 @@ fn main() -> Result<(), std::io::Error>
             hbrBackground: Default::default(),
             lpszMenuName: s!("Menu")
         };
-        let atom = RegisterClassA(&window_class_a);
+        let atom:u16 = RegisterClassA(&window_class_a);
         debug_assert!(atom != 0);
         println!("Atom: {:?}",atom);
         // dwexstyle below: WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST
         let window:HWND = CreateWindowExA(Default::default(), window_class, s!("Sample window"), WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU | WS_MINIMIZEBOX,0,0,X_SIZE,Y_SIZE,HWND_DESKTOP, None, instance,None);
         println!("{:?}",window);
-        let mut message = MSG::default();
+        let mut message:MSG = MSG::default();
         let current_window:HWND = GetForegroundWindow();
-        let lenght = GetWindowTextLengthA(current_window);
-        let mut window_text: Vec<u16> = vec![];
-        GetWindowTextW(current_window,&mut window_text);
+        let length:i32 = GetWindowTextLengthA(current_window) + 1;
+        // let mut window_text: Vec<u16> = vec![];
+        // GetWindowTextW(current_window,&mut window_text);
         let mut client_rect: RECT = RECT {..Default::default()};
         let _ = GetClientRect(current_window,&mut client_rect);
-        SetWindowPos(window,HWND_TOP,1280,720,client_rect.right,client_rect.bottom,SWP_SHOWWINDOW);
+        // let _ = SetWindowPos(window,HWND_TOP,1280,720,client_rect.right,client_rect.bottom,SWP_SHOWWINDOW);
         // let windows_position = MapWindowPoints(0, current_window,0 );
-        let mut text:Vec<u16> = vec![0;lenght as usize];
-        let get_text_from_window = GetWindowTextW(current_window,&mut text);
-        println!("line 80: {:?}",String::from_utf16_lossy(&text[..lenght as usize]));
+        let mut text:Vec<u16> = vec![0;length as usize];
+        let _ = GetWindowTextW(current_window,&mut text);
+        println!("line 80: {:?}",String::from_utf16_lossy(&text[..length as usize]));
         // GetMessageA(&mut message, None, 0,0);
         while GetMessageA(&mut message, None, 0, 0).into(){
+            let _ = TranslateMessage(&message);
             DispatchMessageA(&message);
         }
     }
